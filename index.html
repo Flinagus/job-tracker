@@ -649,6 +649,13 @@ async function handleDeepLink(){
   const e=state?.matched?.[c]?.[id]||{title:q.get("t")||"",url:q.get("u")||"",
     location:q.get("l")||"",timeframe:q.get("tf")||"",posted:q.get("p")||""};
   if(hiddenHas(c,id)){ toast("Already handled that one ✅"); return; }
+  if(act==="readd"){   // a posting the watcher's deep check removed — put it back
+    const a=postingToApp(c,id,e,false);   // into the pipeline as "planning"
+    tracker.applications.unshift(a); hide(c,id);
+    render(); toast("Re-added to your applications ✅");
+    saveTracker("re-add: "+(a.title||a.company));
+    return;
+  }
   await inboxAction(act==="applied"?"applied":"trash",c,id);
 }
 
