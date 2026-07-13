@@ -268,6 +268,27 @@ function renderStats(){
     (na.map(c=>`<span class="co">${esc(c)}</span>`).join("")||"<i>none — you've hit them all!</i>");
 }
 function hiddenHas(c,id){ return (tracker.hidden[c]||[]).map(String).includes(String(id)); }
+/* Collapse the same role reposted under many requisition IDs (Cigna alone
+   lists one "HIH - Co-Op/Intern" req per opening — 36 of them) into a single
+   card: same normalized title + location = one posting. Keeps a stable
+   representative (real posted date > richer timeframe > lowest id), matching
+   the watcher's email dedupe so both surfaces agree. */
+function dedupePostings(items){
+  const norm=s=>String(s??"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  const better=(a,b)=>{ // a,b are [id,e]; is a the better representative of the two?
+    const ra=[a[1].posted?1:0,(a[1].timeframe||"").length];
+    const rb=[b[1].posted?1:0,(b[1].timeframe||"").length];
+    if(ra[0]!==rb[0]) return ra[0]>rb[0];
+    if(ra[1]!==rb[1]) return ra[1]>rb[1];
+    return String(a[0])<String(b[0]);
+  };
+  const best=new Map();
+  for(const pair of items){
+    const k=norm(pair[1].title)+"|"+norm(pair[1].location);
+    if(!best.has(k)||better(pair,best.get(k))) best.set(k,pair);
+  }
+  return [...best.values()];
+}
 function linkedKeys(){
   const s=new Set();
   for(const a of [...tracker.applications,...tracker.history_no_apply,...tracker.history_applied])
@@ -281,9 +302,10 @@ function renderInbox(){
   const fresh=new Date(Date.now()-2*864e5).toISOString().slice(0,10);
   let total=0, html="";
   for(const co of Object.keys(matched).sort()){
-    const items=Object.entries(matched[co])
+    let items=Object.entries(matched[co])
       .filter(([id])=>!hiddenHas(co,id)&&!linked.has(co+" "+id));
     if(!items.length) continue;
+    items=dedupePostings(items);   // one card per role, not one per requisition ID
     items.sort((x,y)=>String(y[1].posted||y[1].found||"").localeCompare(String(x[1].posted||x[1].found||"")));
     html+=`<div class="cogroup">${esc(co)}</div>`;
     for(const [id,e] of items){ total++;
