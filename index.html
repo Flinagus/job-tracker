@@ -315,7 +315,7 @@ function renderInbox(){
         <div class="ttl"><span class="live" style="background:${live?"var(--green)":"var(--dim)"}"
              title="${live?"seen on the site in the last 2 days":"not re-seen recently"}"></span>
              <a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title)}</a></div>
-        <div class="sub">${esc(e.location||"")}${e.location?" · ":""}${esc(e.timeframe||"timeframe not listed")}${posted?" · Posted: "+posted:""}</div>
+        <div class="sub">${esc(e.location||"")}${e.location?" · ":""}${esc(e.timeframe||"timeframe not listed")}${posted?" · Posted: "+posted:""}${e.deadline?` · <span style="color:var(--amber)">&#9203; apply by ${fmtDate(e.deadline)}</span>`:""}</div>
         <div class="actions">
           <button class="btn ok sm" data-act="applied" data-c="${esc(co)}" data-id="${esc(id)}">&#10003; Applied</button>
           <button class="btn ghost sm" data-act="save" data-c="${esc(co)}" data-id="${esc(id)}">&#9734; Save</button>
@@ -382,6 +382,7 @@ function postingToApp(co,id,e,applied){
   a.title=(e.title||"").replace(/ — [^—]+$/,"");
   a.url=e.url||""; a.location=e.location||""; a.timeframe=e.timeframe||"";
   a.date_posted=(e.posted||"").slice(0,10);
+  a.deadline=(e.deadline||"").slice(0,10);   // application deadline found by the watcher's deep review
   if(applied){ a.date_applied=todayISO(); a.status="awaiting"; }
   return a;
 }
@@ -647,7 +648,8 @@ async function handleDeepLink(){
   const c=q.get("c")||"", id=q.get("id")||"";
   if(!c||!id) return;
   const e=state?.matched?.[c]?.[id]||{title:q.get("t")||"",url:q.get("u")||"",
-    location:q.get("l")||"",timeframe:q.get("tf")||"",posted:q.get("p")||""};
+    location:q.get("l")||"",timeframe:q.get("tf")||"",posted:q.get("p")||"",
+    deadline:q.get("dl")||""};
   if(hiddenHas(c,id)){ toast("Already handled that one ✅"); return; }
   if(act==="readd"){   // a posting the watcher's deep check removed — put it back
     const a=postingToApp(c,id,e,false);   // into the pipeline as "planning"
